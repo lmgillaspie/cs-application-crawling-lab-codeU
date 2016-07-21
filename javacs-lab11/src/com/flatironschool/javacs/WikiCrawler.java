@@ -1,3 +1,6 @@
+/**
+ * Edited by Lindsey Gillaspie
+ */ 
 package com.flatironschool.javacs;
 
 import java.io.IOException;
@@ -54,8 +57,33 @@ public class WikiCrawler {
 	 * @throws IOException
 	 */
 	public String crawl(boolean testing) throws IOException {
-        // FILL THIS IN!
-		return null;
+        // Completed this method
+		if (queue.isEmpty()) {
+			return null;
+		}
+		
+		String url = queue.poll();
+		System.out.println("Crawling through " + url);
+
+		if (index.isIndexed(url) && testing==false) {
+			System.out.println("Already indexed.");
+			return null;
+		}
+
+		Elements paragraphs;
+		// If testing is true, read the url
+		if (testing) {
+			paragraphs = wf.readWikipedia(url);
+		} else // fetch the url 
+		{
+			paragraphs = wf.fetchWikipedia(url);
+		}
+		
+		index.indexPage(url, paragraphs);
+		
+		queueInternalLinks(paragraphs);
+		
+		return url;
 	}
 	
 	/**
@@ -65,8 +93,30 @@ public class WikiCrawler {
 	 */
 	// NOTE: absence of access level modifier means package-level
 	void queueInternalLinks(Elements paragraphs) {
-        // FILL THIS IN!
+        // Completed this method
+		for (Element paragraph: paragraphs) {
+			queueInternalLinks(paragraph);
+		}
 	}
+
+	/**
+	 * Helper method that parses a paragraph and adds internal 
+	 * links to the queue.
+	 * 
+	 * Parameter: paragraph
+	 */
+	private void queueInternalLinks(Element paragraph) {
+	   Elements elmts = paragraph.select("a[href]");
+	   
+	   for (Element elt: elmts) {
+	    	String relURL = elt.attr("href");
+
+	    	if (relURL.startsWith("/wiki/")) {
+	    		String absURL = "https://en.wikipedia.org" + relURL;
+	    		queue.offer(absURL);
+	    	}
+	    }
+	} // end of queueInternalLinks()
 
 	public static void main(String[] args) throws IOException {
 		
@@ -84,9 +134,6 @@ public class WikiCrawler {
 		String res;
 		do {
 			res = wc.crawl(false);
-
-            // REMOVE THIS BREAK STATEMENT WHEN crawl() IS WORKING
-            break;
 		} while (res == null);
 		
 		Map<String, Integer> map = index.getCounts("the");
